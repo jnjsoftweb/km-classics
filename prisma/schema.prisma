@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Book {
+  bookId        String   @id @default(cuid())
+  bookNum       Int
+  source        String
+  title         String?
+  titleChinese  String?
+  author        String?
+  publishYear   String?
+  translator    String?
+  edition       String?
+  language      String?
+  physicalInfo  String?
+  publisher     String?
+  location      String?
+  confidenceLevel String?
+  abstract      String?
+  references    String?
+  volume        String?
+  translatorInfo String?
+  bibliographicInfo String?
+  authorInfo    String?
+  publicationInfo String?
+  classification String?
+  subject       String?
+  keywords      String?
+  ebooks        String?
+  category      String?
+  similars      String?
+  volumes       Int
+  chars         Int
+  contents      Content[]
+}
+
+
+model Content {
+  contentId        Int   @id @default(autoincrement())
+  book      Book?    @relation(fields: [bookId], references: [bookId])
+  bookId    String?
+  volumeNum Int
+  sectId    Int
+  path      String?
+  level     String?
+  depth     String?
+  sectNum   String?
+  chinese   String?
+  chineseKo String?
+  korean    String?
+  english   String?
+}
