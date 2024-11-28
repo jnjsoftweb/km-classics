@@ -195,7 +195,7 @@ export { insertBooks, insertBookContents, findBook };
 
 // await insertVolumeContents(8, 1);
 
-await deleteAllContents();
+// await deleteAllContents();
 await insertBookContents(8)
 
 // console.info(JSON.stringify(await findBook('MC_00008'), null, 2));

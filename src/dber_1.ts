@@ -41,37 +41,85 @@ async function insertVolumeContents(bookNum: number, volumeNum: number) {
   try {
     const contents = volumeContents(bookNum, volumeNum);
     const bookId = getBookId(bookNum);
-    const mappedContents = contents.map((content: any) => ({
-      ...content,
-      book: {
-        connect: {
-          bookId,
-        },
-      },
-    }));
+    
+    // 데이터 정제 및 유효성 검사
+    const mappedContents = contents
+      .map((content: any) => {
+        try {
+          return {
+            contentId: content.contentId,
+            volumeNum: content.volumeNum,
+            sectId: content.sectId,
+            chinese: content.chinese ? String(content.chinese).trim() : '',
+            korean: content.korean ? String(content.korean).trim() : '',
+            book: {
+              connect: {
+                bookId,
+              },
+            },
+          };
+        } catch (err) {
+          console.error(`Content mapping error at sectId ${content?.sectId}:`, err);
+          return null;
+        }
+      })
+      .filter((content): content is NonNullable<typeof content> => content !== null);
 
-    // Promise.all을 사용하여 모든 생성 작업을 동시에 처리
-    const results = await Promise.all(
-      mappedContents.map((content: any) =>
-        prisma.content.create({
-          data: content,
-        })
-      )
-    );
+    // 배치 처리
+    const batchSize = 50;
+    let successCount = 0;
 
-    console.log(`${results.length}개의 콘텐츠가 생성되었습니다.`);
+    for (let i = 0; i < mappedContents.length; i += batchSize) {
+      const batch = mappedContents.slice(i, i + batchSize);
+      
+      try {
+        await prisma.$transaction(async (tx) => {
+          for (const content of batch) {
+            await tx.content.create({
+              data: content,
+            });
+          }
+        });
+        
+        successCount += batch.length;
+        console.log(`배치 처리 완료: ${i + 1}~${i + batch.length}/${mappedContents.length}`);
+      } catch (batchError) {
+        console.error(`배치 처리 실패 (${i}~${i + batchSize}):`, batchError);
+        
+        // 개별 처리로 재시도
+        for (const content of batch) {
+          try {
+            await prisma.content.create({
+              data: content,
+            });
+            successCount++;
+          } catch (singleError) {
+            console.error(`단일 콘텐츠 처리 실패 (sectId: ${content.sectId}):`, singleError);
+          }
+        }
+      }
+    }
+
+    console.log(`${successCount}개의 콘텐츠가 생성되었습니다.`);
   } catch (error) {
     console.error('콘텐츠 생성 실패:', error);
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
 const insertBookContents = async (bookNum: number) => {
-  const bookId = getBookId(bookNum);
-  const volumeNums = volumeNumsByBookNum(bookNum);
-  for (const volumeNum of volumeNums) {
-    await insertVolumeContents(bookNum, volumeNum);
+  try {
+    const bookId = getBookId(bookNum);
+    const volumeNums = volumeNumsByBookNum(bookNum);
+    
+    for (const volumeNum of volumeNums) {
+      try {
+        await insertVolumeContents(bookNum, volumeNum);
+      } catch (volumeError) {
+        console.error(`볼륨 ${volumeNum} 처리 실패:`, volumeError);
+      }
+    }
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

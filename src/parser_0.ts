@@ -281,26 +281,24 @@ function volumeContents(bookNum: number, volumeNum: number) {
         let result = '';
 
         $el.contents().each((_: any, node: any) => {
-          if (!node) return; // 노드가 없는 경우 건너뛰기
-
           if (node.type === 'text') {
-            result += node.data || ''; // data가 없으면 빈 문자열
+            result += node.data;
           } else if (node.type === 'tag') {
             const $node = $(node);
-            const nodeText = $node.text() || ''; // text가 없으면 빈 문자열
 
             if ($node.hasClass('size-sm')) {
-              result += `~${nodeText.trim()}~`;
+              result += `~${$node.text().trim()}~`;
             } else if ($node.attr('seq')) {
               const seq = $node.attr('seq');
+              const content = $node.text().trim();
               const annotation = annotationMap.get(seq);
               if (annotation) {
-                result += `[${nodeText.trim()}]{${annotation.type}: ${annotation.desc}}`;
+                result += `[${content}]{${annotation.type}: ${annotation.desc}}`;
               } else {
-                result += nodeText.trim();
+                result += content;
               }
             } else {
-              result += nodeText.trim();
+              result += $node.text().trim();
             }
           }
         });
@@ -323,18 +321,13 @@ function volumeContents(bookNum: number, volumeNum: number) {
           path: upath,
           level: level,
           depth: levelDepth,
+          // sectNum1: sectNum1,
+          // sectNum2: sectNum2,
           sectNum: sectNum,
-          chinese: chineseText || '',
-          chineseKo: (() => {
-            try {
-              return chineseText ? hanja.translate(chineseText, 'SUBSTITUTION') : '';
-            } catch (e) {
-              console.warn(`Warning: Failed to translate Chinese text for section ${sectId}`);
-              return '';
-            }
-          })(),
-          korean: koreanText || '',
-          english: englishText || '',
+          chinese: chineseText,
+          chineseKo: hanja.translate(chineseText, 'SUBSTITUTION'),
+          korean: koreanText,
+          english: englishText,
         };
         contents.push(content);
       } catch (innerError: any) {
@@ -378,13 +371,11 @@ export {
 };
 
 // // console.log(allBookInfos());
-
-// // saveJson(`${REPO_DIR}/json/allBookInfos.json`, allBookInfos());
-// // 1~24 권 별 내용 저장
-// for (let volNum of Array.from({ length: 6 }, (_, i) => i + 1)) {
-//   console.log(`${REPO_DIR}/json/contents_8_${volNum}.json`);
-//   saveJson(`${REPO_DIR}/json/contents_8_${volNum}.json`, volumeContents(8, volNum));
-// }
+// saveJson(`${REPO_DIR}/json/allBookInfos.json`, allBookInfos());
+// 1~24 권 별 내용 저장
+for (let volNum of Array.from({ length: 24 }, (_, i) => i + 1)) {
+  saveJson(`${REPO_DIR}/json/contents_8_${volNum}.json`, volumeContents(8, volNum));
+}
 
 
 
